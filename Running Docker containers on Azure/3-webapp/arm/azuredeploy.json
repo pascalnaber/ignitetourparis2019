@@ -1,0 +1,131 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appServicePlanName": {
+      "type": "string",      
+      "metadata": {
+        "description": "Name of the Hostingplan"
+      }
+    },
+    "appServiceName": {
+      "type": "string",     
+      "metadata": {
+        "description": "Name of the webapp"
+      }
+    },
+    "appServiceSku": {
+      "type": "string",
+      "defaultValue": "B1",
+      "metadata": {
+        "description": "The SKU of App Service Plan"
+      }
+    },
+    "dockerImageName": {
+      "type": "string",
+      "metadata": {
+        "description": "_MY_REGISTRY_USERNAME_.azurecr.io/_MY_NAMESPACE_/_MY_DOCKER_IMAGE_NAME_:_TAG_"
+      }
+    },
+    "dockerRegistryUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "https://_MY_REGISTRY_USERNAME_.azurecr.io"
+      }
+    },
+    "dockerRegistryUsername": {
+      "type": "string"
+    },
+    "dockerRegistryPassword": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location (region) for all resources."
+      }
+    }
+  },
+  "resources": [
+    {
+      "apiVersion": "2017-08-01",
+      "type": "Microsoft.Web/serverfarms",
+      "kind": "linux",
+      "name": "[parameters('appServicePlanName')]",
+      "location": "[parameters('location')]",
+      "comments": "This app service plan is used for the web app and slots.",
+      "properties": {
+        "reserved": true
+      },
+      "dependsOn": [],
+      "sku": {
+        "name": "[parameters('appServiceSku')]"
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2018-02-01",
+      "name": "[parameters('appServiceName')]",
+      "kind": "app,linux,container",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+      ],
+      "properties": {
+        "name": "[parameters('appServiceName')]",
+        "siteConfig": {                              
+        },
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"        
+      },
+      "resources": [
+        {
+          "apiVersion": "2018-02-01",
+          "name": "staging",
+          "type": "slots",
+          "tags": {
+            "displayName": "webAppSlots"
+          },
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/Sites', parameters('appServiceName'))]"
+          ],
+          "properties": {
+            "httpsOnly": true,
+            "clientAffinityEnabled": false,
+            "autoSwapSlotName": "production",
+            "siteConfig": {
+              "linuxFxVersion": "[concat('DOCKER|', parameters('dockerImageName'))]",
+              "httpLoggingEnabled": true,
+              "alwaysOn": true,
+              "ftpsState": "Disabled",
+              "appSettings": [
+                {
+                  "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE",
+                  "value": "false"
+                },
+                {
+                  "name": "DOCKER_REGISTRY_SERVER_URL",
+                  "value": "[parameters('dockerRegistryUrl')]"
+                },
+                {
+                  "name": "DOCKER_REGISTRY_SERVER_USERNAME",
+                  "value": "[parameters('dockerRegistryUsername')]"
+                },
+                {
+                  "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
+                  "value": "[parameters('dockerRegistryPassword')]"
+                },
+                {
+                  "name": "WEBSITES_PORT",
+                  "value": "80"
+                }
+              ]             
+          },
+          "resources": []
+        }
+      }
+      ]
+    }
+  ]
+}

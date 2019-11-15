@@ -1,0 +1,1 @@
+az webapp deployment slot swap -g $RESOURCEGROUP -n $WEBAPP_NAME --slot staging --target-slot production

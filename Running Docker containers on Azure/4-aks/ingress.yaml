@@ -1,0 +1,21 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: rome-api-http-ingress  
+  annotations:        
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
+spec:
+  tls:
+  - hosts:
+    - www.projectrome.cf
+    secretName: romeapi-http-tls
+  rules:
+  - host: www.projectrome.cf
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: rome-api-service
+          servicePort: 80

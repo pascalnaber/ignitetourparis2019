@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rome-api-service
+spec:
+  ports:
+    - port: 80
+  selector:
+    app: backend
+  type: ClusterIP
+
+  

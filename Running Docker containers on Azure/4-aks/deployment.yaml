@@ -1,0 +1,49 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: rome-api
+spec:  
+  replicas: 5
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: dutchazuremeetupwebapi
+        image: romeimages.azurecr.io/dutchazuremeetupwebapi:642   
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+          limits:
+            cpu: "500m"
+            memory: "128Mi"   
+        ports:
+        - containerPort: 80 
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          timeoutSeconds: 1
+          periodSeconds: 10 
+          failureThreshold: 3    
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          timeoutSeconds: 1
+          periodSeconds: 10 
+          failureThreshold: 3     
+      imagePullSecrets:
+      - name: romeimages
+
+

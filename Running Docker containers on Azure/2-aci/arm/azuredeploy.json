@@ -1,0 +1,155 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "name": {
+            "type": "string",
+            "metadata": {
+                "description": "Name for the container group"
+            },
+            "defaultValue": "aci-demo"
+        },               
+        "imageRegistryServer": {
+            "type": "string",
+            "defaultValue": "romeimages.azurecr.io",
+            "metadata": {
+                "description": "Container image to deploy. Should be of the form accountName/imagename:tag for images stored in Docker Hub or a fully qualified URI for a private registry like the Azure Container Registry."
+            }
+        },
+        "imageRegistryUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure Container Registry user name."
+            }
+        },
+        "imageRegistryPassword": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure Container Registry password."
+            }
+        },
+        "cpuCores": {
+            "type": "string",
+            "metadata": {
+                "description": "The number of CPU cores to allocate to the container. Must be an integer."
+            },
+            "defaultValue": "1"
+        },
+        "memoryInGb": {
+            "type": "string",
+            "metadata": {
+                "description": "The amount of memory to allocate to the container in gigabytes."
+            },
+            "defaultValue": "1.5"
+        },
+        "osType": {
+            "allowedValues": [
+                "Linux",
+                "Windows"
+            ],
+            "defaultValue": "Linux",
+            "type": "string"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "name": "ACI-demo",
+            "type": "Microsoft.ContainerInstance/containerGroups",
+            "apiVersion": "2018-10-01",
+            "location": "[resourceGroup().location]",           
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "restartPolicy": "always",
+                "osType": "[parameters('osType')]",
+                "imageRegistryCredentials": [
+                    {
+                        "server": "[parameters('imageRegistryServer')]",
+                        "username": "[parameters('imageRegistryUsername')]",
+                        "password": "[parameters('imageRegistryPassword')]"
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "webapi",
+                        "properties": {
+                            "command": [],
+                            "environmentVariables": [
+                                {
+                                  "name": "ConnectionStrings__DutchAzureMeetupContext",
+                                  "value": "Server=tcp:dutchazuremeetup.database.windows.net,1433;Initial Catalog=dutchazuremeetup;Persist Security Info=False;User ID=dutchazuremeetup;Password=We<3@zure;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+                                },
+                                {
+                                    "name": "ASPNETCORE_URLS",
+                                    "value": "http://*:5000"
+                                }
+                            ],
+                            "image": "romeimages.azurecr.io/dutchazuremeetupwebapi:627",
+                            "ports": [
+                                {
+                                    "protocol": "TCP",
+                                    "port": 5000
+                                   }
+                            ],
+                            "resources": {
+                                "requests": {
+                                    "cpu": 1,
+                                    "memoryInGB": 2
+                                }
+                            },
+                            "volumeMounts": []
+                        }
+                    },
+                    {
+                        "name": "webapp",
+                        "properties": {
+                            "command": [],
+                            "environmentVariables": [
+                                {
+                                  "name": "BackendUri",
+                                  "value": "http://localhost:5000"
+                                }
+                            ],
+                            "image": "romeimages.azurecr.io/dutchazuremeetupwebapp:627",
+                            "ports": [
+                                {
+                                 "protocol": "TCP",
+                                 "port": 80
+                                }
+                            ],
+                            "resources": {
+                                "requests": {
+                                    "cpu": 1,
+                                    "memoryInGB": 2
+                                }
+                            },
+                            "volumeMounts": []
+                        }
+                    }
+                ],                
+                "ipAddress": {
+                    "type": "Public",
+                    "ports": [
+                        {
+                            "protocol": "TCP",
+                            "port": 80
+                        },
+                        {
+                            "protocol": "TCP",
+                            "port": 5000
+                        }
+                    ]
+                },
+                "volumes": []
+            }
+        }
+    ],
+    "outputs": {
+        "containerIPv4Address": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups/','ACI-demo')).ipAddress.ip]"
+        }
+    }
+}
